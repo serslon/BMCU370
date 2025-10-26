@@ -14,24 +14,24 @@ void MC_PULL_ONLINE_init()
 float MC_PULL_stu_raw[4] = {0, 0, 0, 0};
 int MC_PULL_stu[4] = {0, 0, 0, 0};
 float MC_ONLINE_key_stu_raw[4] = {0, 0, 0, 0};
-// 0-离线 1-在线双微动触发 2-外触发 3-内触发
+// 0-Offline 1-Online dual microswitch trigger 2-Outer trigger 3-Inner trigger
 int MC_ONLINE_key_stu[4] = {0, 0, 0, 0};
 
-// 电压控制相关常量
-float PULL_voltage_up = 1.85f;   // 状态 压力高 红灯
-float PULL_voltage_down = 1.45f; // 状态 压力低 蓝灯
+// Voltage control related constants
+float PULL_voltage_up = 1.85f;   // Status pressure high red light
+float PULL_voltage_down = 1.45f; // Status pressure low blue light
 #define PULL_VOLTAGE_SEND_MAX 1.7f
-// 微动触发控制相关常量
+// Microswitch trigger control related constants
 bool Assist_send_filament[4] = {false, false, false, false};
-bool pull_state_old = false; // 上次触发状态——True：未触发，False：进料完成
+bool pull_state_old = false; // Last trigger state - True: not triggered, False: feeding completed
 bool is_backing_out = false;
 uint64_t Assist_filament_time[4] = {0, 0, 0, 0};
-uint64_t Assist_send_time = 1200; // 仅触发外侧后，送料时长
-// 退料距离 单位 MM
-float_t P1X_OUT_filament_meters = 200.0f; // 内置200mm 外置700mm
-float_t last_total_distance[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // 初始化退料开始时的距离
-// bool filament_channel_inserted[4]={false,false,false,false};//通道是否插入
-// 使用双微动
+uint64_t Assist_send_time = 1200; // Only trigger outer after, feeding duration
+// Retraction distance unit MM
+float_t P1X_OUT_filament_meters = 200.0f; // Built-in 200mm external 700mm
+float_t last_total_distance[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // Initialize retraction start distance
+// bool filament_channel_inserted[4]={false,false,false,false};//Channel inserted
+// Use dual microswitch
 #define is_two false
 
 void MC_PULL_ONLINE_read()
@@ -59,24 +59,24 @@ void MC_PULL_ONLINE_read()
             DEBUG_MY("   \n");
         }
         */
-        if (MC_PULL_stu_raw[i] > PULL_voltage_up) // 大于1.85V,表示压力过高
+        if (MC_PULL_stu_raw[i] > PULL_voltage_up) // Greater than 1.85V, pressure too high
         {
             MC_PULL_stu[i] = 1;
         }
-        else if (MC_PULL_stu_raw[i] < PULL_voltage_down) // 小于1.45V，表示压力过低
+        else if (MC_PULL_stu_raw[i] < PULL_voltage_down) // Less than 1.45V, pressure too low
         {
             MC_PULL_stu[i] = -1;
         }
-        else // 1.4~1.7之间，在正常误差范围内，无需动作
+        else // 1.4~1.7 between normal error range, no action needed
         {
             MC_PULL_stu[i] = 0;
         }
-        /*在线状态*/
+        /*Online status*/
 
-        // 耗材在线判断
+        // Filament online judgment
         if (is_two == false)
         {
-            // 大于1.65V，为耗材在线，高电平.
+            // Greater than 1.65V, filament online, high level.
             if (MC_ONLINE_key_stu_raw[i] > 1.65)
             {
                 MC_ONLINE_key_stu[i] = 1;
@@ -89,21 +89,21 @@ void MC_PULL_ONLINE_read()
         else
         {
             // DEBUG_MY(MC_ONLINE_key_stu_raw);
-            // 双微动
+            // Dual microswitch
             if (MC_ONLINE_key_stu_raw[i] < 0.6f)
-            { // 小于则离线.
+            { // Less than offline.
                 MC_ONLINE_key_stu[i] = 0;
             }
             else if ((MC_ONLINE_key_stu_raw[i] < 1.7f) & (MC_ONLINE_key_stu_raw[i] > 1.4f))
-            { // 仅触发外侧微动，需辅助进料
+            { // Only trigger outer microswitch, need auxiliary feeding
                 MC_ONLINE_key_stu[i] = 2;
             }
             else if (MC_ONLINE_key_stu_raw[i] > 1.7f)
-            { // 双微动同时触发, 在线状态
+            { // Dual microswitch simultaneously triggered, online status
                 MC_ONLINE_key_stu[i] = 1;
             }
             else if (MC_ONLINE_key_stu_raw[i] < 1.4f)
-            { // 仅触发内侧微动 , 需确认是缺料还是抖动.
+            { // Only trigger inner microswitch, confirm if out of filament or vibration.
                 MC_ONLINE_key_stu[i] = 3;
             }
         }
@@ -160,7 +160,7 @@ public:
         pid_MIN = -PWM_lim;
         pid_range = (pid_MAX - pid_MIN) / 2;
     }
-    void init_PID(float P_set, float I_set, float D_set) // 注意，采用了PID独立的计算方法，I和D默认已乘P
+    void init_PID(float P_set, float I_set, float D_set) // Note, adopted PID independent calculation method, I and D default multiplied by P
     {
         P = P_set;
         I = I_set;
@@ -171,13 +171,13 @@ public:
     float caculate(float E, float time_E)
     {
         I_save += I * E * time_E;
-        if (I_save > pid_range) // 对I限幅
+        if (I_save > pid_range) // Limit I
             I_save = pid_range;
         if (I_save < -pid_range)
             I_save = -pid_range;
 
         float ouput_buf;
-        if (time_E != 0) // 防止快速调用
+        if (time_E != 0) // Prevent rapid calls
             ouput_buf = P * E + I_save + D * (E - E_last) / time_E;
         else
             ouput_buf = P * E + I_save;

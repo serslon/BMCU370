@@ -7,12 +7,12 @@ CRC8 crc_8;
 uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
-uint8_t BambuBus_AMS_num = 0; // 0~3 代表被识别为 A B C D
-uint8_t AMS_humidity_wet = 12; // 0~100(百分比湿度)
+uint8_t BambuBus_AMS_num = 0; // 0~3 represent recognized as A B C D
+uint8_t AMS_humidity_wet = 12; // 0~100 (percentage humidity)
 
 struct _filament
 {
-    // AMS statu
+    // AMS status
     char ID[8] = "GFG00";
     uint8_t color_R = 0xFF;
     uint8_t color_G = 0xFF;
@@ -181,20 +181,20 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
     static uint8_t data_CRC8_index;
     unsigned char data = _RX_IRQ_data;
 
-    if (_index == 0) // waitting for first data
+    if (_index == 0) // waiting for first data
     {
         if (data == 0x3D) // 0x3D-start
         {
             BambuBus_data_buf[0] = 0x3D;
             _RX_IRQ_crcx.restart();       // reset CRC8
             _RX_IRQ_crcx.add(0x3D);       // add 0x3D in CRC8
-            data_length_index = 4;        // unknow package type,init length data to 4
-            length = data_CRC8_index = 6; // unknow package length,,init package length to 6
+            data_length_index = 4;        // unknown package type, init length data to 4
+            length = data_CRC8_index = 6; // unknown package length, init package length to 6
             _index = 1;
         }
         return;
     }
-    else // have 0x3D,normal data
+    else // have 0x3D, normal data
     {
         BambuBus_data_buf[_index] = data;
         if (_index == 1) // package type byte
@@ -214,26 +214,26 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
         {
             length = data;
         }
-        if (_index < data_CRC8_index) // before CRC8 byte,add data
+        if (_index < data_CRC8_index) // before CRC8 byte, add data
         {
             _RX_IRQ_crcx.add(data);
         }
-        else if (_index == data_CRC8_index) // the CRC8 byte,check
+        else if (_index == data_CRC8_index) // the CRC8 byte, check
         {
-            if (data != _RX_IRQ_crcx.calc()) // check error,return to waiting 0x3D
+            if (data != _RX_IRQ_crcx.calc()) // check error, return to waiting 0x3D
             {
                 _index = 0;
                 return;
             }
         }
         ++_index;
-        if (_index >= length) // recv over,copy package data
+        if (_index >= length) // recv over, copy package data
         {
             _index = 0;
             memcpy(buf_X, BambuBus_data_buf, length);
             BambuBus_have_data = length;
         }
-        if (_index >= 999) // recv error,reset
+        if (_index >= 999) // recv error, reset
         {
             _index = 0;
         }
@@ -933,25 +933,25 @@ void online_detect_init()
 }
 void send_for_online_detect(unsigned char *buf, int length)
 {
-    if ((buf[5] == 0x00)) // 注册AMS序号用
+    if ((buf[5] == 0x00)) // Register AMS number
     {
         if (have_registered == true)
             return;
         int i = BambuBus_AMS_num;
         while (i--)
         {
-            delay(1); // 将不同序号的AMS数据包上分割开来
+            delay(1); // Separate data packets of different numbers AMS
         }
-        online_detect_res[0] = 0x3D;             // 帧头
+        online_detect_res[0] = 0x3D;             // Frame header
         online_detect_res[1] = 0xC0;             // flag
-        online_detect_res[2] = 29;               // 数据长度-29字节
+        online_detect_res[2] = 29;               // Data length -29 bytes
         online_detect_res[3] = 0xB4;             // CRC8
-        online_detect_res[4] = 0x05;             // 命令号
-        online_detect_res[5] = 0x00;             // 命令号
-        online_detect_res[6] = BambuBus_AMS_num; // AMS号码
+        online_detect_res[4] = 0x05;             // Command number
+        online_detect_res[5] = 0x00;             // Command number
+        online_detect_res[6] = BambuBus_AMS_num; // AMS number
 
-        online_detect_res[7] = BambuBus_AMS_num; // 本来是一个序列号，这里覆盖为AMS号码
-        online_detect_res[8] = BambuBus_AMS_num; // 本来是一个序列号，这里覆盖为AMS号码
+        online_detect_res[7] = BambuBus_AMS_num; // Originally a serial number, covered as AMS number
+        online_detect_res[8] = BambuBus_AMS_num; // Originally a serial number, covered as AMS number
 
         package_send_with_crc(online_detect_res, sizeof(online_detect_res));
     }
@@ -959,15 +959,15 @@ void send_for_online_detect(unsigned char *buf, int length)
     if ((buf[5] == 0x01) && (buf[6] == BambuBus_AMS_num))
     {
 
-        online_detect_res[0] = 0x3D;                                         // 帧头
+        online_detect_res[0] = 0x3D;                                         // Frame header
         online_detect_res[1] = 0xC0;                                         // flag
-        online_detect_res[2] = 29;                                           // 数据长度-29字节
+        online_detect_res[2] = 29;                                           // Data length -29 bytes
         online_detect_res[3] = 0xB4;                                         // CRC8
-        online_detect_res[4] = 0x05;                                         // 命令号
-        online_detect_res[5] = 0x01;                                         // 命令号
-        online_detect_res[6] = BambuBus_AMS_num;                             // AMS号码
-        memcpy(online_detect_res + 7, buf + 7, 20);                          // 复制AMS注册号
-        package_send_with_crc(online_detect_res, sizeof(online_detect_res)); // 发送数据
+        online_detect_res[4] = 0x05;                                         // Command number
+        online_detect_res[5] = 0x01;                                         // Command number
+        online_detect_res[6] = BambuBus_AMS_num;                             // AMS number
+        memcpy(online_detect_res + 7, buf + 7, 20);                          // Copy AMS registration number
+        package_send_with_crc(online_detect_res, sizeof(online_detect_res)); // Send data
 
         if (have_registered == false)
             if (memcmp(online_detect_res + 7, buf + 7, 20) == 0)
