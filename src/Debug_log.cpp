@@ -26,10 +26,11 @@ void Debug_log_init()
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 
+    // Standard PC-friendly debug UART: 115200 8N1
     USART_InitStructure.USART_BaudRate = Debug_log_baudrate;
-    USART_InitStructure.USART_WordLength = USART_WordLength_9b;
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
     USART_InitStructure.USART_StopBits = USART_StopBits_1;
-    USART_InitStructure.USART_Parity = USART_Parity_Even;
+    USART_InitStructure.USART_Parity = USART_Parity_No;
     USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
     USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
 
