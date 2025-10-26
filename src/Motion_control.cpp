@@ -54,7 +54,7 @@ void MC_PULL_ONLINE_read()
             DEBUG_float(MC_PULL_stu_raw[i],3);
             DEBUG_MY("  MC_ONLINE_key_stu_raw = ");
             DEBUG_float(MC_ONLINE_key_stu_raw[i],3);
-            DEBUG_MY("  通道：");
+            DEBUG_MY("  Channel:");
             DEBUG_float(i,1);
             DEBUG_MY("   \n");
         }
@@ -255,12 +255,12 @@ public:
         float x=0;
         switch (control_type)
         {
-        case pressure_control_enum::all: // 全范围控制
+        case pressure_control_enum::all: // Full range control
         {
             x = dir * PID_pressure.caculate(MC_PULL_stu_raw[CHx] - control_voltage, time_E);
             break;
         }
-        case pressure_control_enum::less_pressure: // 仅低压控制
+        case pressure_control_enum::less_pressure: // Low pressure control only
         {
             if (pressure_voltage < control_voltage)
             {
@@ -268,7 +268,7 @@ public:
             }
             break;
         }
-        case pressure_control_enum::over_pressure: // 仅高压控制
+        case pressure_control_enum::over_pressure: // High pressure control only
         {
             if (pressure_voltage > control_voltage)
             {
@@ -277,7 +277,7 @@ public:
             break;
         }
         }
-        if (x > 0) // 将控制力转为平方增强，平方会消掉正负，需要判断
+        if (x > 0) // Convert control force to square enhancement, square eliminates positive and negative, need to judge
             x = x * x / 250;
         else
             x = -x * x / 250;
@@ -285,7 +285,7 @@ public:
     }
     void run(float time_E)
     {
-        // 当处于退料状态，并且需要退料时，开始记录里程。
+        // When in retraction state and need to retract, start recording mileage.
         if (is_backing_out){
             last_total_distance[CHx] += fabs(speed_as5600[CHx] * time_E);
         }
@@ -294,62 +294,62 @@ public:
         float x=0;
 
         uint16_t device_type = get_now_BambuBus_device_type();
-        static uint64_t countdownStart[4] = {0};          // 辅助进料倒计时
-        if (motion == filament_motion_enum::filament_motion_pressure_ctrl_idle) // 在空闲状态
+        static uint64_t countdownStart[4] = {0};          // Auxiliary feeding countdown
+        if (motion == filament_motion_enum::filament_motion_pressure_ctrl_idle) // In idle state
         {
-            // 当 两个微动都被释放
+            // When both microswitches are released
             if (MC_ONLINE_key_stu[CHx] == 0)
             {
-                Assist_send_filament[CHx] = true; // 某通道离线后才可触发辅助进料一次
-                countdownStart[CHx] = 0;          // 清空倒计时
+                Assist_send_filament[CHx] = true; // After a channel goes offline, auxiliary feeding can be triggered once
+                countdownStart[CHx] = 0;          // Clear countdown
             }
 
             if (Assist_send_filament[CHx] && is_two)
-            { // 允许状态，尝试辅助进料
+            { // Allowed state, try auxiliary feeding
                 if (MC_ONLINE_key_stu[CHx] == 2)
-                {                   // 触发外侧微动
-                    x = -dir * 666; // 驱动送料
+                {                   // Trigger outer microswitch
+                    x = -dir * 666; // Drive feeding
                 }
                 if (MC_ONLINE_key_stu[CHx] == 1)
-                { // 同时触发双微动，准备停机
+                { // Simultaneously trigger dual microswitches, prepare to stop
                     if (countdownStart[CHx] == 0)
-                    { // 启动倒计时
+                    { // Start countdown
                         countdownStart[CHx] = get_time64();
                     }
                     uint64_t now = get_time64();
-                    if (now - countdownStart[CHx] >= Assist_send_time) // 倒计时
+                    if (now - countdownStart[CHx] >= Assist_send_time) // Countdown
                     {
-                        x = 0;                             // 停止电机
-                        Assist_send_filament[CHx] = false; // 达成条件，完成一轮辅助进料。
+                        x = 0;                             // Stop motor
+                        Assist_send_filament[CHx] = false; // Achieve condition, complete one round of auxiliary feeding.
                     }
                     else
                     {
-                        // 驱动送料
+                        // Drive feeding
                         x = -dir * 666;
                     }
                 }
             }
             else
             {
-                // 已经触发过，或微动触发在其他状态
+                // Already triggered, or microswitch triggered in other states
                 if (MC_ONLINE_key_stu[CHx] != 0 && MC_PULL_stu[CHx] != 0)
-                { // 如果滑块被人为拉动，做出对应响应
+                { // If the slider is manually pulled, respond accordingly
                     x = dir * PID_pressure.caculate(MC_PULL_stu_raw[CHx] - 1.65, time_E);
                 }
                 else
-                { // 否则，保持停机
+                { // Otherwise, keep stopped
                     x = 0;
                     PID_pressure.clear();
                 }
             }
         }
-        else if (MC_ONLINE_key_stu[CHx] != 0) // 通道在运行状态，并且有耗材
+        else if (MC_ONLINE_key_stu[CHx] != 0) // Channel is in running state and has filament
         {
-            if (motion == filament_motion_enum::filament_motion_pressure_ctrl_on_use) // 在使用状态
+            if (motion == filament_motion_enum::filament_motion_pressure_ctrl_on_use) // In use state
             {
-                if (pull_state_old) { // 首次进入使用中，不触发后退，冲刷会让缓冲归位.
+                if (pull_state_old) { // First time entering use, do not trigger retraction, flushing will reset buffer.
                     if (MC_PULL_stu_raw[CHx] < 1.55){
-                        pull_state_old = false; // 检测到耗材已处于低压力。
+                        pull_state_old = false; // Detected filament is at low pressure.
                     }
                 } else {
                     if (MC_PULL_stu_raw[CHx] < 1.65)
@@ -364,38 +364,38 @@ public:
             }
             else
             {
-                if (motion == filament_motion_enum::filament_motion_stop) // 要求停止
+                if (motion == filament_motion_enum::filament_motion_stop) // Request to stop
                 {
                     PID_speed.clear();
                     Motion_control_set_PWM(CHx, 0);
                     return;
                 }
-                if (motion == filament_motion_enum::filament_motion_send) // 送料中
+                if (motion == filament_motion_enum::filament_motion_send) // Feeding
                 {
                     if (device_type == BambuBus_AMS_lite)
                     {
-                        if (MC_PULL_stu_raw[CHx] < PULL_VOLTAGE_SEND_MAX) // 压力主动到这个位置
+                        if (MC_PULL_stu_raw[CHx] < PULL_VOLTAGE_SEND_MAX) // Pressure actively to this position
                             speed_set = 30;
                         else
-                            speed_set = 0; // 原版这里是 10
+                            speed_set = 0; // Original here is 10
                     }
                     else
                     {
-                        speed_set = 50; // P系全力以赴
+                        speed_set = 50; // P series go all out
                     }
                 }
-                if (motion == filament_motion_enum::filament_motion_slow_send) // 要求缓慢送料
+                if (motion == filament_motion_enum::filament_motion_slow_send) // Request slow feeding
                 {
                     speed_set = 3;
                 }
-                if (motion == filament_motion_enum::filament_motion_pull) // 回抽
+                if (motion == filament_motion_enum::filament_motion_pull) // Retract
                 {
                     speed_set = -50;
                 }
                 x = dir * PID_speed.caculate(now_speed - speed_set, time_E);
             }
         }
-        else // 运行过程中耗材用完，需要停止电机控制
+        else // During operation, filament runs out, need to stop motor control
         {
             x = 0;
         }
@@ -421,7 +421,7 @@ public:
 };
 _MOTOR_CONTROL MOTOR_CONTROL[4] = {_MOTOR_CONTROL(0), _MOTOR_CONTROL(1), _MOTOR_CONTROL(2), _MOTOR_CONTROL(3)};
 
-void Motion_control_set_PWM(uint8_t CHx, int PWM)//传递到硬件层控制电机的PWM
+void Motion_control_set_PWM(uint8_t CHx, int PWM)//Pass to hardware layer to control motor PWM
 {
     uint16_t set1 = 0, set2 = 0;
     if (PWM > 0)
@@ -459,7 +459,7 @@ void Motion_control_set_PWM(uint8_t CHx, int PWM)//传递到硬件层控制电�
 }
 
 int32_t as5600_distance_save[4] = {0, 0, 0, 0};
-void AS5600_distance_updata()//读取as5600，更新相关的数据
+void AS5600_distance_updata()//Read as5600, update related data
 {
     static uint64_t time_last = 0;
     uint64_t time_now;
@@ -492,7 +492,7 @@ void AS5600_distance_updata()//读取as5600，更新相关的数据
             cir_E = 4096;
         }
 
-        distance_E = -(float)(now_distance - last_distance + cir_E) * AS5600_PI * 7.5 / 4096; // D=7.5mm，加负号是因为AS5600正对磁铁
+        distance_E = -(float)(now_distance - last_distance + cir_E) * AS5600_PI * 7.5 / 4096; // D=7.5mm, add negative sign because AS5600 is facing the magnet
         as5600_distance_save[i] = now_distance;
 
         float speedx = distance_E / T * 1000;
@@ -521,37 +521,37 @@ bool Prepare_For_filament_Pull_Back(float_t OUT_filament_meters)
     {
         if (filament_now_position[i] == filament_pulling_back)
         {
-            // DEBUG_MY("last_total_distance: "); // 输出调试信息
+            // DEBUG_MY("last_total_distance: "); // Output debug information
             // Debug_log_write_float(last_total_distance[i], 5);
             if (last_total_distance[i] < OUT_filament_meters)
             {
-                // 未到达时进行退料
-                MOTOR_CONTROL[i].set_motion(filament_motion_enum::filament_motion_pull, 100); // 驱动电机退料
-                // 渐变灯效
+                // When not reached, perform retraction
+                MOTOR_CONTROL[i].set_motion(filament_motion_enum::filament_motion_pull, 100); // Drive motor retraction
+                // Gradient light effect
                 float npercent = (last_total_distance[i] / OUT_filament_meters) * 100.0f;
                 MC_STU_RGB_set(i, 255 - ((255 / 100) * npercent), 125 - ((125 / 100) * npercent), (255 / 100) * npercent);
-                // 退料未完成需要优先处理
+                // Retraction not completed needs priority processing
             }
             else
             {
-                // 到达停止距离
-                is_backing_out = false; // 无需继续记录距离
-                MOTOR_CONTROL[i].set_motion(filament_motion_enum::filament_motion_stop, 100); // 停止电机
-                filament_now_position[i] = filament_idle;               // 设置当前位置为空闲
-                set_filament_motion(i, AMS_filament_motion::idle);      // 强制进入空闲
-                last_total_distance[i] = 0;                             // 重置退料距离
-                // 退料完成
+                // Reach stop distance
+                is_backing_out = false; // No need to continue recording distance
+                MOTOR_CONTROL[i].set_motion(filament_motion_enum::filament_motion_stop, 100); // Stop motor
+                filament_now_position[i] = filament_idle;               // Set current position to idle
+                set_filament_motion(i, AMS_filament_motion::idle);      // Force enter idle
+                last_total_distance[i] = 0;                             // Reset retraction distance
+                // Retraction completed
             }
-            // 只要在退料状态就必须等待，直到不在退料中，下次循环后才不需要等待。
+            // As long as in retraction state must wait, until not in retraction, next cycle will not wait.
             wait = true;
         }
     }
     return wait;
 }
-void motor_motion_switch() // 通道状态切换函数，只控制当前在使用的通道，其他通道设置为停止
+void motor_motion_switch() // Channel state switching function, only controls the current channel in use, others set to stop
 {
-    int num = get_now_filament_num();                      // 当前通道号
-    uint16_t device_type = get_now_BambuBus_device_type(); // 设备类型
+    int num = get_now_filament_num();                      // Current channel number
+    uint16_t device_type = get_now_BambuBus_device_type(); // Device type
     for (int i = 0; i < 4; i++)
     {
         if (i != num)
@@ -559,49 +559,49 @@ void motor_motion_switch() // 通道状态切换函数，只控制当前在使�
             filament_now_position[i] = filament_idle;
             MOTOR_CONTROL[i].set_motion(filament_motion_enum::filament_motion_pressure_ctrl_idle, 1000);
         }
-        else if (MC_ONLINE_key_stu[num] == 1 || MC_ONLINE_key_stu[num] == 3) // 通道有耗材丝
+        else if (MC_ONLINE_key_stu[num] == 1 || MC_ONLINE_key_stu[num] == 3) // Channel has filament
         {
-            switch (get_filament_motion(num)) // 判断模拟器状态
+            switch (get_filament_motion(num)) // Judge simulator state
             {
-            case AMS_filament_motion::need_send_out: // 需要进料
+            case AMS_filament_motion::need_send_out: // Need feeding
                 MC_STU_RGB_set(num, 00, 255, 00);
                 filament_now_position[num] = filament_sending_out;
                 MOTOR_CONTROL[num].set_motion(filament_motion_enum::filament_motion_send, 100);
                 break;
             case AMS_filament_motion::need_pull_back:
-                pull_state_old = false; // 重置标记
-                is_backing_out = true; // 标记正在回退
+                pull_state_old = false; // Reset mark
+                is_backing_out = true; // Mark as retracting
                 filament_now_position[num] = filament_pulling_back;
                 if (device_type == BambuBus_AMS_lite)
                 {
                     MOTOR_CONTROL[num].set_motion(filament_motion_enum::filament_motion_pull, 100);
                 }
-                // Prepare_For_filament_Pull_Back(OUT_filament_meters); // 通过距离控制退料是否完成
+                // Prepare_For_filament_Pull_Back(OUT_filament_meters); // Control retraction completion by distance
                 break;
             case AMS_filament_motion::before_pull_back:
             case AMS_filament_motion::on_use:
             {
                 static uint64_t time_end = 0;
                 uint64_t time_now = get_time64();
-                if (filament_now_position[num] == filament_sending_out) // 如果通道刚开始进料
+                if (filament_now_position[num] == filament_sending_out) // If channel just started feeding
                 {
-                    is_backing_out = false; // 设置无需记录距离
-                    pull_state_old = true; // 首次不会往后拽，会等待触发低电压位，避免刚进入料就被拉出。
-                    filament_now_position[num] = filament_using; // 标记为使用中
-                    time_end = time_now + 1500;                  // 防止未被咬合, 持续进1.5秒
+                    is_backing_out = false; // Set no need to record distance
+                    pull_state_old = true; // First time won't pull back, will wait for low voltage trigger to avoid filament being pulled out just entered.
+                    filament_now_position[num] = filament_using; // Mark as in use
+                    time_end = time_now + 1500;                  // Prevent not being engaged, continue feeding for 1.5 seconds
                 }
-                else if (filament_now_position[num] == filament_using) // 已经触发且处于使用中
+                else if (filament_now_position[num] == filament_using) // Already triggered and in use
                 {
-                    last_total_distance[i] = 0; // 重置退料距离
+                    last_total_distance[i] = 0; // Reset retraction distance
                     if (time_now > time_end)
-                    {                                          // 已超1.5秒，进入通道使用 进行续料
-                        MC_STU_RGB_set(num, 255, 255, 255); // 白色
+                    {                                          // Over 1.5 seconds, enter channel use for refilling
+                        MC_STU_RGB_set(num, 255, 255, 255); // White
                         MOTOR_CONTROL[num].set_motion(filament_motion_enum::filament_motion_pressure_ctrl_on_use, 20);
                     }
                     else
-                    {                                                                  // 是否刚被检测到耗材丝
-                        MC_STU_RGB_set(num, 128, 192, 128);                         // 淡绿色
-                        MOTOR_CONTROL[num].set_motion(filament_motion_enum::filament_motion_slow_send, 100); // 前1.5秒 慢速进料，辅助工具头咬合。
+                    {                                                                  // Whether just detected filament
+                        MC_STU_RGB_set(num, 128, 192, 128);                         // Light green
+                        MOTOR_CONTROL[num].set_motion(filament_motion_enum::filament_motion_slow_send, 100); // First 1.5 seconds slow feeding, auxiliary tool head engagement.
                     }
                 }
                 break;
@@ -611,24 +611,24 @@ void motor_motion_switch() // 通道状态切换函数，只控制当前在使�
                 MOTOR_CONTROL[num].set_motion(filament_motion_enum::filament_motion_pressure_ctrl_idle, 100);
                 for (int i = 0; i < 4; i++)
                 {
-                    // 硬件正常
+                    // Hardware normal
                     if (MC_ONLINE_key_stu[i] == 1 || MC_ONLINE_key_stu[i] == 0)
-                    {   // 同时触发或者无耗材丝
-                        MC_STU_RGB_set(i, 0, 0, 255); // 蓝色
+                    {   // Simultaneous trigger or no filament
+                        MC_STU_RGB_set(i, 0, 0, 255); // Blue
                     }
                     else if (MC_ONLINE_key_stu[i] == 2)
-                    {   // 仅外部触发
-                        MC_STU_RGB_set(i, 255, 144, 0); // 橙 /像金色
+                    {   // Outer trigger only
+                        MC_STU_RGB_set(i, 255, 144, 0); // Orange / like gold
                     }
                     else if (MC_ONLINE_key_stu[i] == 3)
-                    {   // 仅内部触发
-                        MC_STU_RGB_set(i, 0, 255, 255); // 青色
+                    {   // Inner trigger only
+                        MC_STU_RGB_set(i, 0, 255, 255); // Cyan
                     }
                 }
                 break;
             }
         }
-        else if (MC_ONLINE_key_stu[num] == 0) // 0:一定没有耗材丝，1:同时触发一定有耗材丝 2:仅外部触发 3:仅内部触发，这里有防掉线功能
+        else if (MC_ONLINE_key_stu[num] == 0) // 0: definitely no filament, 1: simultaneous trigger definitely has filament 2: outer trigger only 3: inner trigger only, here has anti-drop function
         {
             filament_now_position[num] = filament_idle;
             MOTOR_CONTROL[num].set_motion(filament_motion_enum::filament_motion_pressure_ctrl_idle, 100);
@@ -636,70 +636,70 @@ void motor_motion_switch() // 通道状态切换函数，只控制当前在使�
         }
     }
 }
-// 根据AMS模拟器的信息，来调度电机
+// According to AMS simulator information, schedule motor
 void motor_motion_run(int error)
 {
     uint64_t time_now = get_time64();
     static uint64_t time_last = 0;
-    float time_E = time_now - time_last; // 获取时间差（ms）
-    time_E = time_E / 1000;              // 切换到单位s
+    float time_E = time_now - time_last; // Get time difference (ms)
+    time_E = time_E / 1000;              // Switch to unit s
     uint16_t device_type = get_now_BambuBus_device_type();
-    if (!error) // 正常模式
+    if (!error) // Normal mode
     {
-        // 根据设备类型执行不同的电机控制逻辑
+        // Execute different motor control logic according to device type
         if (device_type == BambuBus_AMS_lite)
         {
-            motor_motion_switch(); // 调度电机
+            motor_motion_switch(); // Schedule motor
         }
         else if (device_type == BambuBus_AMS)
         {
-            if (!Prepare_For_filament_Pull_Back(P1X_OUT_filament_meters)) // 取反(返回true)，则代表不需要优先考虑退料，并继续调度电机。
+            if (!Prepare_For_filament_Pull_Back(P1X_OUT_filament_meters)) // Negate (return true), means no need to prioritize retraction, and continue scheduling motor.
             {
-                motor_motion_switch(); // 调度电机
+                motor_motion_switch(); // Schedule motor
             }
         }
     }
-    else // error模式
+    else // error mode
     {
         for (int i = 0; i < 4; i++)
-            MOTOR_CONTROL[i].set_motion(filament_motion_enum::filament_motion_stop, 100); // 关闭电机
+            MOTOR_CONTROL[i].set_motion(filament_motion_enum::filament_motion_stop, 100); // Turn off motor
     }
 
     for (int i = 0; i < 4; i++)
     {
-        /*if (!get_filament_online(i)) // 通道不在线则电机不允许工作
+        /*if (!get_filament_online(i)) // Channel not online, motor not allowed to work
             MOTOR_CONTROL[i].set_motion(filament_motion_stop, 100);*/
-        MOTOR_CONTROL[i].run(time_E); // 根据状态信息来驱动电机
+        MOTOR_CONTROL[i].run(time_E); // Drive motor according to status information
 
         if (MC_PULL_stu[i] == 1)
         {
-            MC_PULL_ONLINE_RGB_set(i, 255, 0, 0); // 压力过大，红灯
+            MC_PULL_ONLINE_RGB_set(i, 255, 0, 0); // Pressure too high, red light
         }
         else if (MC_PULL_stu[i] == 0)
-        { // 正常压力
+        { // Normal pressure
             if (MC_ONLINE_key_stu[i] == 1)
-            { // 在线，并且双微动触发
+            { // Online and dual microswitch trigger
                 int filament_colors_R = channel_colors[i][0];
                 int filament_colors_G = channel_colors[i][1];
                 int filament_colors_B = channel_colors[i][2];
-                // 根据储存的耗材丝颜色
+                // According to stored filament color
                 MC_PULL_ONLINE_RGB_set(i, filament_colors_R, filament_colors_G, filament_colors_B);
-                // 亮白灯
+                // Light white
                 // MC_STU_RGB_set(i, 255, 255, 255);
             }
             else
             {
-                MC_PULL_ONLINE_RGB_set(i, 0, 0, 0); // 无耗材，不亮灯
+                MC_PULL_ONLINE_RGB_set(i, 0, 0, 0); // No filament, no light
             }
         }
         else if (MC_PULL_stu[i] == -1)
         {
-            MC_PULL_ONLINE_RGB_set(i, 0, 0, 255); // 压力过小，蓝灯
+            MC_PULL_ONLINE_RGB_set(i, 0, 0, 255); // Pressure too low, blue light
         }
     }
     time_last = time_now;
 }
-// 运动控制函数
+// Motion control function
 void Motion_control_run(int error)
 {
     MC_PULL_ONLINE_read();
@@ -712,19 +712,19 @@ void Motion_control_run(int error)
         } else if (MC_ONLINE_key_stu[i] == 1) {
             set_filament_online(i, true);
         } else if (MC_ONLINE_key_stu[i] == 3 && filament_now_position[i] == filament_using) {
-            // 如果 仅内侧触发且在使用中，先不离线
+            // If only inner trigger and in use, do not go offline first
             set_filament_online(i, true);
         } else if (filament_now_position[i] == filament_redetect || (filament_now_position[i] == filament_pulling_back)) {
-            // 如果 处于退料返回，或退料中，先不离线
+            // If in redetect or retracting, do not go offline first
             set_filament_online(i, true);
         } else {
             set_filament_online(i, false);
         }
     }
     /*
-        如果外侧微动触发，橙/ 像金色
-        如果仅内测微动触发，// 青色
-        如果同时触发，空闲 = 蓝色，同时代表耗材丝上线，蓝 + 白色/通道保存色
+        If outer microswitch triggered, orange/ like gold
+        If only inner microswitch triggered, // Cyan
+        If simultaneous trigger, idle = blue, simultaneously represents filament online, blue + white/channel saved color
     */
 
     if (error) // Error != 0
@@ -732,25 +732,25 @@ void Motion_control_run(int error)
         for (int i = 0; i < 4; i++)
         {
             set_filament_online(i, false);
-            // filament_channel_inserted[i] = true; // 用于测试
+            // filament_channel_inserted[i] = true; // For testing
             if (MC_ONLINE_key_stu[i] == 1)
-            {                                        // 同时触发
-                MC_STU_RGB_set(i, 0, 0, 255); // 蓝色
+            {                                        // Simultaneous trigger
+                MC_STU_RGB_set(i, 0, 0, 255); // Blue
             }
             else if (MC_ONLINE_key_stu[i] == 2)
-            {                                        // 仅外部触发
-                MC_STU_RGB_set(i, 255, 144, 0); // 橙/ 像金色
+            {                                        // Outer trigger only
+                MC_STU_RGB_set(i, 255, 144, 0); // Orange/ like gold
             }
             else if (MC_ONLINE_key_stu[i] == 3)
-            {                                        // 仅内部触发
-                MC_STU_RGB_set(i, 0, 255, 255); // 青色
+            {                                        // Inner trigger only
+                MC_STU_RGB_set(i, 0, 255, 255); // Cyan
             } else if (MC_ONLINE_key_stu[i] == 0)
-            {   // 未连接打印机且没有耗材丝
-                MC_STU_RGB_set(i, 0, 0, 0); // 黑色
+            {   // Not connected to printer and no filament
+                MC_STU_RGB_set(i, 0, 0, 0); // Black
             }
         }
-    } else { // 正常连接到打印机
-        // 在这里设置颜色会重复修改。
+    } else { // Normally connected to printer
+        // Setting color here will be repeated modification.
         for (int i = 0; i < 4; i++)
         {
             if ((MC_AS5600.online[i] == false) || (MC_AS5600.magnet_stu[i] == -1)) // AS5600 error
@@ -762,7 +762,7 @@ void Motion_control_run(int error)
     }
     motor_motion_run(error);
 }
-// 设置PWM驱动电机
+// Set PWM to drive motor
 void MC_PWM_init()
 {
     GPIO_InitTypeDef GPIO_InitStructure;
@@ -775,27 +775,27 @@ void MC_PWM_init()
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE); // 开启复用时钟
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE); // 开启TIM2时钟
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE); // 开启TIM3时钟
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE); // 开启TIM4时钟
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE); // Enable multiplexing clock
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE); // Enable TIM2 clock
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE); // Enable TIM3 clock
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE); // Enable TIM4 clock
 
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
     TIM_OCInitTypeDef TIM_OCInitStructure;
 
-    // 定时器基础配置
-    TIM_TimeBaseStructure.TIM_Period = 999;  // 周期（x+1）
-    TIM_TimeBaseStructure.TIM_Prescaler = 1; // 预分频（x+1）
+    // Timer basic configuration
+    TIM_TimeBaseStructure.TIM_Period = 999;  // Period (x+1)
+    TIM_TimeBaseStructure.TIM_Prescaler = 1; // Prescaler (x+1)
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
     TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
     TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
 
-    // PWM模式配置
+    // PWM mode configuration
     TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
     TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-    TIM_OCInitStructure.TIM_Pulse = 0; // 占空比
+    TIM_OCInitStructure.TIM_Pulse = 0; // Duty cycle
     TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
     TIM_OC1Init(TIM2, &TIM_OCInitStructure); // PA15
     TIM_OC2Init(TIM2, &TIM_OCInitStructure); // PB3
@@ -806,9 +806,9 @@ void MC_PWM_init()
     TIM_OC3Init(TIM4, &TIM_OCInitStructure); // PB8
     TIM_OC4Init(TIM4, &TIM_OCInitStructure); // PB9
 
-    GPIO_PinRemapConfig(GPIO_FullRemap_TIM2, ENABLE);    // TIM2完全映射-CH1-PA15/CH2-PB3
-    GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE); // TIM3部分映射-CH1-PB4/CH2-PB5
-    GPIO_PinRemapConfig(GPIO_Remap_TIM4, DISABLE);       // TIM4不映射-CH1-PB6/CH2-PB7/CH3-PB8/CH4-PB9
+    GPIO_PinRemapConfig(GPIO_FullRemap_TIM2, ENABLE);    // TIM2 full remap -CH1-PA15/CH2-PB3
+    GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE); // TIM3 partial remap -CH1-PB4/CH2-PB5
+    GPIO_PinRemapConfig(GPIO_Remap_TIM4, DISABLE);       // TIM4 no remap -CH1-PB6/CH2-PB7/CH3-PB8/CH4-PB9
 
     TIM_CtrlPWMOutputs(TIM2, ENABLE);
     TIM_ARRPreloadConfig(TIM2, ENABLE);
@@ -820,7 +820,7 @@ void MC_PWM_init()
     TIM_ARRPreloadConfig(TIM4, ENABLE);
     TIM_Cmd(TIM4, ENABLE);
 }
-// 获取PWM摩擦力零点（弃用，假设为50%占空比）
+// Get PWM friction zero point (deprecated, assume 50% duty cycle)
 void MOTOR_get_pwm_zero()
 {
     float pwm_zero[4] = {0, 0, 0, 0};
@@ -863,7 +863,7 @@ void MOTOR_get_pwm_zero()
         MOTOR_CONTROL[index].set_pwm_zero(pwm_zero[index]);
     }
 }
-// 将角度数值转化为角度差数值
+// Convert angle value to angle difference value
 int M5600_angle_dis(int16_t angle1, int16_t angle2)
 {
 
@@ -879,7 +879,7 @@ int M5600_angle_dis(int16_t angle1, int16_t angle2)
     return cir_E;
 }
 
-// 测试电机运动方向
+// Test motor movement direction
 void MOTOR_get_dir()
 {
     int dir[4] = {0, 0, 0, 0};
@@ -892,31 +892,31 @@ void MOTOR_get_dir()
             Motion_control_data_save.Motion_control_dir[index] = 0;
         }
     }
-    MC_AS5600.updata_angle(); //读取5600的初始角度值
+    MC_AS5600.updata_angle(); // Read 5600 initial angle value
 
     int16_t last_angle[4];
     for (int index = 0; index < 4; index++)
     {
-        last_angle[index] = MC_AS5600.raw_angle[index];                  //将初始角度值记录下来
-        dir[index] = Motion_control_data_save.Motion_control_dir[index]; //记录flash中的dir数据
+        last_angle[index] = MC_AS5600.raw_angle[index];                  // Record initial angle value
+        dir[index] = Motion_control_data_save.Motion_control_dir[index]; // Record dir data in flash
     }
-    //bool need_test = false; // 是否需要检测
-    bool need_save = false; // 是否需要更新状态
+    //bool need_test = false; // Whether need to detect
+    bool need_save = false; // Whether need to update status
     for (int index = 0; index < 4; index++)
     {
-        if ((MC_AS5600.online[index] == true)) // 有5600，说明通道在线
+        if ((MC_AS5600.online[index] == true)) // Have 5600, channel online
         {
-            if (Motion_control_data_save.Motion_control_dir[index] == 0) // 之前测试结果为0，需要测试
+            if (Motion_control_data_save.Motion_control_dir[index] == 0) // Previous test result 0, need test
             {
-                Motion_control_set_PWM(index, 1000); // 打开电机
-                //need_test = true;                    // 设置需要测试
-                need_save = true;                    // 有状态更新
+                Motion_control_set_PWM(index, 1000); // Turn on motor
+                //need_test = true;                    // Set need test
+                need_save = true;                    // Have status update
             }
         }
         else
         {
-            dir[index] = 0;   // 通道不在线，清空它的方向数据
-            need_save = true; // 有状态更新
+            dir[index] = 0;   // Channel not online, clear its direction data
+            need_save = true; // Have status update
         }
     }
     int i = 0;
@@ -924,27 +924,27 @@ void MOTOR_get_dir()
     {
         done = true;
 
-        delay(10);                // 间隔10ms检测一次
-        MC_AS5600.updata_angle(); // 更新角度数据
+        delay(10);                // Check every 10ms interval
+        MC_AS5600.updata_angle(); // Update angle data
 
-        if (i++ > 200) // 超过2s无响应
+        if (i++ > 200) // Over 2s no response
         {
             for (int index = 0; index < 4; index++)
             {
-                Motion_control_set_PWM(index, 0);                       // 停止
-                Motion_control_data_save.Motion_control_dir[index] = 0; // 方向设为0
+                Motion_control_set_PWM(index, 0);                       // Stop
+                Motion_control_data_save.Motion_control_dir[index] = 0; // Direction set to 0
             }
-            break; // 跳出循环
+            break; // Break loop
         }
-        for (int index = 0; index < 4; index++) // 遍历
+        for (int index = 0; index < 4; index++) // Traverse
         {
-            if ((MC_AS5600.online[index] == true) && (Motion_control_data_save.Motion_control_dir[index] == 0)) // 对于新的通道
+            if ((MC_AS5600.online[index] == true) && (Motion_control_data_save.Motion_control_dir[index] == 0)) // For new channel
             {
                 int angle_dis = M5600_angle_dis(MC_AS5600.raw_angle[index], last_angle[index]);
-                if (abs(angle_dis) > 163) // 移动超过1mm
+                if (abs(angle_dis) > 163) // Move over 1mm
                 {
-                    Motion_control_set_PWM(index, 0); // 停止
-                    if (angle_dis > 0)                // 这里AS600正对着磁铁，和背贴方向是反的
+                    Motion_control_set_PWM(index, 0); // Stop
+                    if (angle_dis > 0)                // Here AS600 facing magnet, opposite to back direction
                     {
                         dir[index] = 1;
                     }
@@ -955,23 +955,23 @@ void MOTOR_get_dir()
                 }
                 else
                 {
-                    done = false; // 没有移动。继续等待
+                    done = false; // No movement. Continue waiting
                 }
             }
         }
     }
-    for (int index = 0; index < 4; index++) // 遍历四个电机
+    for (int index = 0; index < 4; index++) // Traverse four motors
     {
-        Motion_control_data_save.Motion_control_dir[index] = dir[index]; // 数据复制
+        Motion_control_data_save.Motion_control_dir[index] = dir[index]; // Data copy
     }
-    if (need_save) // 如果需要保存数据
+    if (need_save) // If need save data
     {
-        Motion_control_save(); // 数据保存
+        Motion_control_save(); // Data save
     }
 }
-// 初始化电机
-// 指定方向
-int first_boot = 1; // 1 表示第一次启动，用于执行仅启动时.
+// Initialize motor
+// Specify direction
+int first_boot = 1; // 1 means first boot, for executing only on boot.
 void set_motor_directions(int dir0, int dir1, int dir2, int dir3)
 {
     Motion_control_data_save.Motion_control_dir[0] = dir0;
@@ -979,7 +979,7 @@ void set_motor_directions(int dir0, int dir1, int dir2, int dir3)
     Motion_control_data_save.Motion_control_dir[2] = dir2;
     Motion_control_data_save.Motion_control_dir[3] = dir3;
 
-    Motion_control_save(); // 保存到闪存
+    Motion_control_save(); // Save to flash
 }
 void MOTOR_init()
 {
@@ -990,13 +990,13 @@ void MOTOR_init()
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD, ENABLE);
     MC_AS5600.init(AS5600_SCL, AS5600_SDA, 4);
     // MOTOR_get_pwm_zero();
-    // 自动方向
+    // Auto direction
     MOTOR_get_dir();
 
-    // 固定电机方向用
+    // Fixed motor direction use
     if (first_boot == 1)
-    { // 首次启动
-        // set_motor_directions(1 , 1 , 1 , 1 ); // 1为正转 -1为反转
+    { // First boot
+        // set_motor_directions(1 , 1 , 1 , 1 ); // 1 for forward -1 for reverse
         first_boot = 0;
     }
     for (int index = 0; index < 4; index++)
@@ -1012,14 +1012,14 @@ void MOTOR_init()
     }
 }
 extern void RGB_update();
-void Motion_control_init() // 初始化所有运动和传感器
+void Motion_control_init() // Initialize all motion and sensors
 {
     MC_PULL_ONLINE_init();
     MC_PULL_ONLINE_read();
     MOTOR_init();
     
     /*
-    //这是一段阻塞的DEBUG代码
+    //This is a blocking DEBUG code
     while (1)
     {
         delay(10);
@@ -1028,9 +1028,9 @@ void Motion_control_init() // 初始化所有运动和传感器
         for (int i = 0; i < 4; i++)
         {
             MOTOR_CONTROL[i].set_motion(filament_motion_pressure_ctrl_on_use, 100);
-            if (!get_filament_online(i)) // 通道不在线则电机不允许工作
+            if (!get_filament_online(i)) // Channel not online, motor not allowed to work
                 MOTOR_CONTROL[i].set_motion(filament_motion_stop, 100);
-            MOTOR_CONTROL[i].run(0); // 根据状态信息来驱动电机
+            MOTOR_CONTROL[i].run(0); // Drive motor according to status information
         }
         char s[100];
         int n = sprintf(s, "%d\n", (int)(MC_PULL_stu_raw[3] * 1000));
@@ -1039,7 +1039,7 @@ void Motion_control_init() // 初始化所有运动和传感器
 
     for (int i = 0; i < 4; i++)
     {
-        // if(MC_AS5600.online[i])//用AS5600是否有信号来判断通道是否插入
+        // if(MC_AS5600.online[i])//Use AS5600 signal to judge if channel is inserted
         // {
         //     filament_channel_inserted[i]=true;
         // }
@@ -1047,6 +1047,6 @@ void Motion_control_init() // 初始化所有运动和传感器
         // {
         //     filament_channel_inserted[i]=false;
         // }
-        filament_now_position[i] = filament_idle;//将通道初始状态设置为空闲
+        filament_now_position[i] = filament_idle;//Set channel initial state to idle
     }
 }

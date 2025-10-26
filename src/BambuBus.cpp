@@ -428,7 +428,7 @@ void package_send_with_crc(uint8_t *data, int data_length)
 
 uint8_t packge_send_buf[1000];
 
-#pragma pack(push, 1) // 将结构体按1字节对齐
+#pragma pack(push, 1) // Align structure to 1 byte
 struct long_packge_data
 {
     uint16_t package_number;
@@ -440,7 +440,7 @@ struct long_packge_data
     uint8_t *datas;
     uint16_t data_length;
 };
-#pragma pack(pop) // 恢复默认对齐
+#pragma pack(pop) // Restore default alignment
 
 void Bambubus_long_package_send(long_packge_data *data)
 {
@@ -854,7 +854,7 @@ void send_for_motion_long(unsigned char *buf, int length)
 
         set_motion_res_datas(Dxx_res + 17, read_num);
     }
-    /*if (last_detect != 0)//本用于模拟NFC探测过程
+    /*if (last_detect != 0)//Originally designed to simulate the NFC detection process
     {
         if (last_detect > 10)
         {
@@ -1046,7 +1046,7 @@ void send_for_long_packge_filament(unsigned char *buf, int length)
     memcpy(long_packge_filament + 19, data_save.filament[filament_num].ID, sizeof(data_save.filament[filament_num].ID));
     memcpy(long_packge_filament + 27, data_save.filament[filament_num].name, sizeof(data_save.filament[filament_num].name));
 
-    // 更新全局颜色变量
+    // Update global color variables
     channel_colors[filament_num][0] = data_save.filament[filament_num].color_R;
     channel_colors[filament_num][1] = data_save.filament[filament_num].color_G;
     channel_colors[filament_num][2] = data_save.filament[filament_num].color_B;
